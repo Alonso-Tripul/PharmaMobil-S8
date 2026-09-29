@@ -1,79 +1,222 @@
 # PharmaMobil · Guía práctica 08
 
-Ancajima Tripul Rony Alonso · UPeU · Desarrollo de Aplicaciones Móviles.
+**Estudiante:** Rony Alonso Ancajima Tripul  
+**Docente:** Benjamín David Reyna Barreto  
+**Universidad:** Universidad Peruana Unión  
+**Carrera:** Ingeniería de Sistemas  
+**Curso:** Desarrollo de Aplicaciones Móviles  
+**Modalidad:** Trabajo individual
 
-## Abrir y ejecutar en Android Studio
+## Objetivo
 
-1. Descomprime el ZIP. Abre la carpeta **PharmaMobil**, donde está `settings.gradle.kts`.
-2. Usa JDK 17 y SDK 35. Espera la sincronización de Gradle.
-3. Selecciona **shared** (no All Tests), el emulador y el triángulo verde Run.
-4. La app conecta con **PharmaSoft**, no con el catálogo público de sesión 7. Debes arrancar el backend y su base Oracle antes de ejecutar operaciones.
-5. En la pantalla puedes editar **URL base** y pulsar **Conectar / Recargar**. La dirección propuesta para el emulador Android es `http://10.0.2.2:8080/api/v1/`. Ajusta el puerto según tu backend. En un teléfono físico usa la IP de tu PC en la red local; `10.0.2.2` solo corresponde al emulador Android.
-6. Antes de probar, verifica en el navegador de la PC `http://localhost:8080/api/health` y `/swagger-ui.html` (ajusta el puerto).
+Implementar y comprobar la gestión de productos mediante una API REST
+de PharmaSoft, utilizando Kotlin Multiplatform, Compose, Ktor y Koin.
 
-Si PharmaSoft no está encendido aparecerá un mensaje de conexión: no se cargan productos ficticios. El ID de categoría debe pertenecer a una categoría existente en Oracle; consúltalo en Swagger o en el catálogo del backend.
+La ejecución y las evidencias de este trabajo corresponden a Android.
+
+## Abrir y ejecutar
+
+1. Abrir la carpeta PharmaMobil en Android Studio.
+2. Utilizar JDK 17 y tener instalado Android SDK 35.
+3. Esperar la sincronización de Gradle.
+4. Iniciar Oracle y el backend PharmaBackend.
+5. Seleccionar la configuración shared y el emulador Android.
+6. Ejecutar la aplicación con el botón Run.
+
+URL base utilizada en el emulador:
+
+```text
+http://10.0.2.2:8080/api/v1/
+```
+
+Comprobación del backend desde el navegador de la PC:
+
+```text
+http://localhost:8080/api/health
+http://localhost:8080/swagger-ui.html
+```
+
+Para un teléfono físico se debe utilizar la dirección IP de la PC
+en la red local. La dirección 10.0.2.2 corresponde al emulador Android.
+
+Antes de crear productos debe existir una categoría en el backend.
+En la comprobación realizada se utilizó la categoría Medicamentos,
+con ID 1.
 
 ## Implementación
 
-- DTO de producto para envío y respuesta, más `PaginaResponseDto<T>` con los seis campos de la guía.
-- GET listado paginado y GET por ID, POST, PUT y DELETE sin deserializar el 204.
-- `ProductoRepository` con cinco operaciones, implementación REST registrada en Koin y alternativa en memoria para pruebas (no se inyecta en la app).
+- DTO de solicitud y respuesta de productos.
+- Respuesta paginada mediante PaginaResponseDto<T>.
+- Operaciones GET, POST, PUT y DELETE.
+- Tratamiento de DELETE 204 sin deserializar un cuerpo de respuesta.
+- ProductoRepository con cinco operaciones e implementación REST.
+- Inyección de dependencias mediante Koin.
 - Casos de uso para listar, obtener, registrar, actualizar y eliminar.
-- `ErrorApi` y un punto de traducción: validación 400 por campo, 404, conflicto 409, servidor, red, timeout y contrato JSON inválido. Las cancelaciones se relanzan.
-- `ProductosViewModel` hereda de AndroidX ViewModel y utiliza viewModelScope. La instancia se crea para la pantalla y cancela su scope al salir; no se retiene a través de la recreación de Activity.
-- `ProductoUiState` separa fase de listado y operación. Al modificar datos mantiene visible la lista y deshabilita acciones de mutación para impedir solicitudes simultáneas. Tras el éxito consulta nuevamente el servidor sin mostrar una carga inicial a pantalla completa.
-- Formulario con nombre, precio, stock, estado e ID categoría; errores del servidor debajo de sus campos. Editar consulta GET por ID; eliminar pide confirmación. Paginación anterior/siguiente.
-- Logger explícito `KTOR:` en Logcat. Filtro: `package:mine message:KTOR`.
-- HTTP sin cifrar permitido para el backend local de laboratorio en Android. Para despliegue usa HTTPS y elimina el permiso de tráfico HTTP.
+- Traducción centralizada de errores mediante ErrorApi.
+- Manejo de validación 400 por campo, 404, 409, errores de servidor,
+  conexión, timeout y contrato JSON inválido.
+- Propagación de cancelaciones de corrutinas.
+- ProductosViewModel con StateFlow y viewModelScope.
+- Separación del estado del listado y del estado de la operación.
+- Formulario con nombre, precio, stock, categoría y estado.
+- Consulta por ID antes de editar.
+- Confirmación antes de eliminar.
+- Actualización del listado después de las modificaciones.
+- Paginación mediante botones Anterior y Siguiente.
+- Registro de solicitudes y respuestas de Ktor en Logcat.
 
-La validación local evita texto no numérico y valores de precio no finitos. Las restricciones de negocio, por ejemplo nombre de dos caracteres, se envían al servidor para comprobar el error 400 solicitado por la guía.
+Durante una operación se mantiene visible el listado y se bloquean
+los controles para evitar solicitudes simultáneas. Esta versión
+todavía requiere ajustar el bloqueo para cumplir literalmente el
+criterio de la guía de deshabilitar únicamente el botón correspondiente.
 
-## Contrato esperado
+## Contrato REST
 
-Base: `/api/v1/`.
+Base: /api/v1/
 
-| Método | Endpoint | Éxito según guía |
-| --- | --- | --- |
+| Método | Endpoint | Respuesta de éxito |
+|---|---|---|
 | GET | productos?pagina=0&tamanio=20 | 200 |
 | GET | productos/{id} | 200 |
 | POST | productos | 201 |
 | PUT | productos/{id} | 200 |
 | DELETE | productos/{id} | 204 |
 
-Enviar `nombre`, `precio`, `stock`, `estado` y `categoriaId`. El listado contiene `contenido`, `pagina`, `tamanio`, `totalElementos`, `totalPaginas` y `ultima`. El error esperado contiene `message` y `validationErrors`.
+Campos enviados:
 
-Se implementó el contrato del PDF adjunto. No se pudo inspeccionar el backend de dreyna/pharmaSoft con la conexión disponible: confirma en Swagger que estos nombres coincidan con tu versión real. No se añade JWT en esta sesión; si el servidor está protegido necesitarás su configuración de acceso.
+- nombre
+- precio
+- stock
+- estado
+- categoriaId
 
-## Comprobaciones y límites
+Campos de la respuesta paginada:
 
-El entorno de preparación bloqueó la descarga de Gradle, por lo que **no se afirma compilación, pruebas aprobadas ni CRUD ejecutado contra el servidor**.
+- contenido
+- pagina
+- tamanio
+- totalElementos
+- totalPaginas
+- ultima
 
-Se incluyen siete pruebas MockEngine para verbos, listado paginado, DELETE 204, validación 400 y cancelación, además de las siete validaciones del formulario anterior. Para ejecutar en Windows:
+## Comprobaciones realizadas en Android
 
-```bat
-gradlew.bat :shared:assembleDebug :shared:testDebugUnitTest
+Se compiló el proyecto y se ejecutó en un emulador Pixel 6.
+
+Se comprobó la conexión con el backend, su endpoint de salud y el
+listado paginado de productos.
+
+Se realizaron las siguientes operaciones:
+
+| Operación | Resultado observado |
+|---|---|
+| Listar | Respuesta GET 200 y producto visible |
+| Crear | Paracetamol 500 mg, precio 5 y stock 20; POST 201 |
+| Obtener y actualizar | Precio cambiado a 6 y stock a 25; PUT 200 |
+| Eliminar | DELETE 204 y producto actualizado a inactivo |
+| Repetir eliminación | Respuesta 409 por producto ya inactivo |
+| Validar nombre | Nombre ab rechazado con 400 y mensaje bajo el campo |
+
+La eliminación del backend es lógica: el producto permanece en el
+listado con estado inactivo. Por ello, un DELETE exitoso no implica
+que desaparezca del listado.
+
+Los registros de Logcat muestran respuestas 200, 201, 204, 400 y 409.
+
+## Pruebas automatizadas
+
+Comando de compilación:
+
+```powershell
+.\gradlew.bat :shared:assembleDebug
 ```
 
-En Linux/macOS: `./gradlew :shared:assembleDebug :shared:testDebugUnitTest`.
+Resultado observado:
 
-El proyecto conserva targets y motor Darwin, y expone `MainViewController()` para iOS. **No contiene app anfitriona Xcode ni evidencia de ejecución iOS**. Integrar en macOS usando un host SwiftUI, configurando la URL apropiada y las excepciones ATS para el servidor local si usa HTTP. Para HTTPS no habilites excepciones ATS generales.
+```text
+BUILD SUCCESSFUL
+```
 
-La URL editada en pantalla dura la sesión de la app; no se guarda al reiniciar. No se incorpora un backend ni una base Oracle dentro del ZIP.
+Comando de pruebas:
 
-## Prueba de la actividad y capturas
+```powershell
+.\gradlew.bat :shared:testDebugUnitTest
+```
 
-Usa productos de prueba propios para evitar modificar registros ajenos.
+Resultado del informe de Gradle:
 
-1. Listado de PharmaSoft y Logcat GET 200.
-2. Crear producto con nombre válido, precio >= 0.01, stock >= 0 y categoría existente; captura confirmación y POST 201.
-3. Obtener / Editar el producto recién creado; cambiar precio o stock, guardar y capturar PUT 200 y lista actualizada.
-4. Eliminar ese producto con confirmación; capturar DELETE 204 y lista actualizada.
-5. Crear con nombre `ab` y demás datos válidos; capturar error del servidor debajo de nombre y Logcat 400.
-6. Detener el backend o desactivar red, recargar y capturar error controlado.
-7. Repetir CRUD en iOS tras integrar la app anfitriona.
+| Grupo | Pruebas | Fallos |
+|---|---:|---:|
+| Validación de productos | 7 | 0 |
+| API REST con MockEngine | 7 | 0 |
+| Total | 14 | 0 |
 
-No se adjuntan capturas simuladas. Guardar evidencias reales en `evidencias/`.
+El informe registró 0 pruebas ignoradas y 100 % de éxito.
 
-## Rama y commits
+Las pruebas REST utilizan respuestas simuladas mediante MockEngine.
+Las comprobaciones manuales de Android se realizaron contra el
+backend real; ambas evidencias se presentan por separado.
 
-La guía pide partir de `develop` y al menos tres commits propios distribuidos. Este ZIP no contiene historial Git ni commits publicados. En el repositorio del curso, parte de develop y crea `feature/crud-productos-ancajima`; incorpora y verifica los cambios por etapas (DTO/API, repositorio/errores, pantalla/pruebas) con commits descriptivos durante el trabajo. No se acredita este requisito solo con el ZIP.
+Para abrir el informe en Windows:
+
+```powershell
+start .\shared\build\reports\tests\testDebugUnitTest\index.html
+```
+
+## Correcciones realizadas
+
+- Sustitución de GlobalContext por KoinPlatform en ProductosScreen.kt.
+- Corrección de las funciones de prueba para que devuelvan Unit.
+- Adaptación de la configuración del backend a Oracle XE y XEPDB1.
+- Sustitución del tipo SQL BOOLEAN por NUMBER(1,0) con restricciones
+  para la versión de Oracle utilizada.
+
+## Control de versiones
+
+Rama de trabajo:
+
+```text
+feature/crud-productos-ancajima
+```
+
+Historial confirmado antes de actualizar este README:
+
+| Commit | Descripción |
+|---|---|
+| 96cff49 | Importar proyecto PharmaMobil de sesión 8 |
+| e931ea9 | Corregir acceso a Koin en pantalla de productos |
+| 19eee56 | Corregir retorno Unit en pruebas de validación |
+
+main y develop apuntaban al commit de importación.
+Los dos commits de correcciones se realizaron en la rama feature.
+
+El commit inicial no cuenta como uno de los tres commits de la rama
+feature. Tampoco se presenta este historial como evidencia de que
+la implementación original del CRUD se desarrolló por etapas.
+
+## Evidencias disponibles
+
+Se dispone de capturas reales de:
+
+- Backend y endpoint de salud.
+- Respuesta JSON paginada.
+- Creación y actualización de productos.
+- Producto inactivo tras su eliminación lógica.
+- Error 400 de validación del nombre.
+- Registros HTTP de Ktor en Logcat.
+- Compilación correcta de Android.
+- Informe de las 14 pruebas aprobadas.
+
+Estas evidencias se incorporarán al informe PDF del trabajo.
+
+## Alcance y limitaciones
+
+- iOS queda fuera del alcance de esta entrega y no se acredita su ejecución.
+- El backend y Oracle se ejecutan por separado y no están incluidos
+  en el proyecto Android.
+- La URL modificada en pantalla no se conserva al reiniciar la app.
+- Se permite HTTP para el backend local de laboratorio.
+- No se incorporó autenticación JWT.
+- Las pruebas aprobadas no demuestran por sí solas el funcionamiento
+  en iOS ni todos los escenarios posibles de red.
+- Queda pendiente ajustar el bloqueo de botones indicado en la guía.
