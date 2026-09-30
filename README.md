@@ -149,6 +149,7 @@ Resultado del informe de Gradle:
 |---|---:|---:|
 | Validación de productos | 7 | 0 |
 | API REST con MockEngine | 7 | 0 |
+| Transiciones de ProductosViewModel | 4 | 0 |
 | Total | 14 | 0 |
 
 El informe registró 0 pruebas ignoradas y 100 % de éxito.
@@ -205,7 +206,7 @@ Se dispone de capturas reales de:
 - Error 400 de validación del nombre.
 - Registros HTTP de Ktor en Logcat.
 - Compilación correcta de Android.
-- Informe de las 14 pruebas aprobadas.
+- Informe de las 18 pruebas aprobadas.
 
 Estas evidencias se incorporarán al informe PDF del trabajo.
 
@@ -220,3 +221,12 @@ Estas evidencias se incorporarán al informe PDF del trabajo.
 - Las pruebas aprobadas no demuestran por sí solas el funcionamiento
   en iOS ni todos los escenarios posibles de red.
 - Queda pendiente ajustar el bloqueo de botones indicado en la guía.
+
+## Manejo de errores
+
+- HTTP 400: `ErrorApi.Validacion`. El mensaje aparece bajo el campo afectado. Se comprobó con nombre `ab` y precio `0`.
+- HTTP 404: `ErrorApi.NoEncontrado`. El PUT al ID 999999 devolvió 404 en Swagger; este caso no se ejecutó desde la pantalla Android.
+- HTTP 409: `ErrorApi.Conflicto`. Se observó al repetir DELETE y al crear un producto con nombre existente.
+- Backend detenido: `ErrorApi.SinConexion`, sin respuesta HTTP.
+- Tiempo agotado: `ErrorApi.TiempoAgotado`. Se probó con 1 ms y luego se restauró `15_000` ms.
+- Cancelación: `CancellationException` se propaga sin convertirse en `ErrorApi`. Lo comprueba una prueba de `commonTest`; falta captura manual durante una operación en curso.
